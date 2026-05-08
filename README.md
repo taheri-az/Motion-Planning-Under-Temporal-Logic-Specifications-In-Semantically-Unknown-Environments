@@ -15,7 +15,7 @@ Code for the paper **[Motion Planning Under Temporal Logic Specifications In Sem
 Temporal logic planning when the semantic labels are uncertain. The environment is modeled as a **PL-DMDP** with a probabilistic belief over labels, combined with the task DFA into a **product automaton** $\mathcal{P} = \mathcal{M} \times \mathcal{A}$. Edges of $\mathcal{P}$ carry label probabilities. The expected return under a policy $\pi_p$ is
 
 $$
-U^{\pi_p}(s_p) = \mathbb{E}^{\pi_p}\!\left[\sum_{i=0}^{\infty} \gamma^i \, r\!\left(s_p(i),\, \pi_p(s_p(i)),\, s_p(i+1)\right)\right]
+U^{\pi_p}(s_p) = \mathbb{E}^{\pi_p}\!\left[\sum_{i=0}^{\infty} \gamma^i \, r\!\left(s_p(i),\, \pi_p(s_p(i)),\, s_p(i+1)\right) \,\bigg|\, s_p(0) = s_p \right]
 $$
 
 with the reward
@@ -29,7 +29,13 @@ r(s_p, \sigma, s'_p) =
 \end{cases}
 $$
 
-and the optimal policy $\pi_p^* = \arg\max_{\pi_p} U^{\pi_p}(s_p)$ is computed by value iteration. Any optimal policy has at least one trajectory reaching an accepting state without going through a trash state. As the robot senses, the belief is corrected and replanning is triggered when the prior disagrees with the truth.
+and the optimal policy
+
+$$
+\pi_p^* = \arg\max_{\pi_p \in \Pi_p} U^{\pi_p}(s_p)
+$$
+
+is computed by value iteration. Any optimal policy has at least one trajectory reaching an accepting state without going through a trash state. As the robot senses, the belief is corrected and replanning is triggered when the prior disagrees with the truth.
 
 ---
 
