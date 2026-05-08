@@ -4,13 +4,15 @@ Code for the paper **[Motion Planning Under Temporal Logic Specifications In Sem
 
 ---
 
-![Trajectory demo](trajectory.gif)
+<p align="center">
+  <img src="trajectory.gif" alt="Trajectory demo">
+</p>
 
 ---
 
 ## Overview
 
-scLTL\next planning when the semantic labels are uncertain. The environment is a **PL-DMDP** with a probabilistic belief over labels, combined with the task DFA into a **product automaton** $\mathcal{P} = \mathcal{M} \times \mathcal{A}$. Edges of $\mathcal{P}$ carry label probabilities. A policy is computed by value iteration with the reward
+Temporal logic planning when the semantic labels are uncertain. The environment is modeled as a **PL-DMDP** with a probabilistic belief over labels, combined with the task DFA into a **product automaton** $\mathcal{P} = \mathcal{M} \times \mathcal{A}$. Edges of $\mathcal{P}$ carry label probabilities. A policy is computed by value iteration with the reward
 
 $$
 r(s_p, \sigma, s'_p) =
@@ -21,7 +23,7 @@ r(s_p, \sigma, s'_p) =
 \end{cases}
 $$
 
-so any optimal policy has at least one trajectory reaching an accepting state without going through a trash state. As the robot senses, the belief is corrected and replanning is triggered when the prior disagrees with the truth ($\|I(\mathcal{N}^h_{x_i}, \mathcal{M})\|_\infty > 0$).
+so any optimal policy has at least one trajectory reaching an accepting state without going through a trash state. As the robot senses, the belief is corrected and replanning is triggered when the prior disagrees with the truth.
 
 ---
 
@@ -65,7 +67,7 @@ Saves the run to `trajectory.gif`.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `n`, `m` | `5`, `5` | Grid dimensions (state = `row * n + col`) |
-| `formula` | $\varphi_1$ | scLTL\next formula in Spot syntax |
+| `formula` | $\varphi_1$ | Temporal logic formula in Spot syntax |
 | `regions` | `['a','b','c','d']` | Atomic propositions |
 | `true_locations` | dict | Cell → list of true atoms |
 | `initial_belief` | dict / `None` | Prior belief per cell |
