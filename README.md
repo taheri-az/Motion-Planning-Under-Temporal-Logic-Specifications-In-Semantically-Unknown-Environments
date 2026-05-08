@@ -15,7 +15,7 @@ Code for the paper **[Motion Planning Under Temporal Logic Specifications In Sem
 Temporal logic planning when the semantic labels are uncertain. The environment is modeled as a **PL-DMDP** with a probabilistic belief over labels, combined with the task DFA into a **product automaton** $\mathcal{P} = \mathcal{M} \times \mathcal{A}$. Edges of $\mathcal{P}$ carry label probabilities. The expected return under a policy $\pi_p$ is
 
 $$
-U^{\pi_p}(s_p) = \mathbb{E}^{\pi_p}\!\left[\sum_{i=0}^{\infty} \gamma^i \, r\!\left(s_p(i),\, \pi_p(s_p(i)),\, s_p(i+1)\right) \,\bigg|\, s_p(0) = s_p \right]
+U^{\pi_p}(s_p) = \mathbb{E}^{\pi_p}\left[\sum_{i=0}^{\infty} \gamma^i \, r\left(s_p(i),\, \pi_p(s_p(i)),\, s_p(i+1)\right) \,\bigg|\, s_p(0) = s_p \right]
 $$
 
 with the reward
