@@ -1,0 +1,151 @@
+import time
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+import spot
+import buddy
+
+import config
+from grid import create_graph
+from labeling import (
+    make_check_label_l, get_states_within_h_distance, assign_probabilities_g3, update
+)
+from dfa import extract_dfa_transitions_with_trash_expanded
+from product_automaton import generate_product_automaton
+from planning import (
+    PA_values, Value_iteration, get_next_state,
+    update_trigger
+)
+from grid import grid_probabilities
+from visualization import generate_grid_environment
+
+n, m = config.n, config.m
+h = 1
+threshold = 0
+gamma = 0.99
+epsilon = 0.01
+formula_str = config.formula
+regions = config.regions
+check_label_l = make_check_label_l(regions, config.true_locations)
+
+start_time = time.time()
+nodes, edges, adj_matrix_np = create_graph(n, m)
+adj_org = adj_matrix_np.tolist()
+
+dfa_transitions, initial_state, trash_states_set = extract_dfa_transitions_with_trash_expanded(formula_str, regions)
+dfa_states = list({t[0] for t in dfa_transitions} | {t[2] for t in dfa_transitions})
+print(dfa_states)
+observations = list(set(cond for _, conds, _ in dfa_transitions for cond in conds))
+
+time_ps = time.time()
+product_graph, transitions, product_nodes, PR_adj_matrix = generate_product_automaton(
+    nodes, edges, adj_org, dfa_states, dfa_transitions, observations
+)
+print(f"Product automaton construction time: {time.time() - time_ps:.3f}s")
+
+transitions = list(dict.fromkeys(transitions))
+
+belief = assign_probabilities_g3(n, m, regions, initial_belief=config.initial_belief)
+observation_probabilities = belief
+initial_state = str(initial_state)
+start_node = (0, initial_state)
+current_state = start_node
+next_state = start_node
+next_dfa_state = initial_state
+current_physical_state = 0
+
+from dfa import probabilistic_labeling_next
+
+adj_matrix = adj_org
+initial_PA_values = PA_values(m, n, product_nodes, adj_matrix)
+transition_dict = probabilistic_labeling_next(transitions, observation_probabilities, dfa_transitions, adj_matrix)
+policy, all_values = Value_iteration(
+    m, n, initial_PA_values, transition_dict, transitions, product_nodes, gamma, adj_matrix, epsilon
+)
+
+previous_probabilities = {}
+full_traj = []
+full_physical_traj = []
+prob_history = [grid_probabilities(belief, n, m)]
+h_neighbors = get_states_within_h_distance(m, n, current_physical_state, h)
+current_value = all_values[current_state]
+p_t_t, p_t_c = 0, 0
+counter = 0
+
+while next_dfa_state != 'accept_all':
+    if  current_value < -1 / (1 - gamma) + 100*epsilon:
+        raise SystemExit("There is no non-zero probability satisfying policy.")
+
+    current_state = next_state
+    current_dfa_state = current_state[1]
+    current_physical_state = current_state[0]
+    full_traj.append(current_state)
+    action = policy[current_state]
+    current_value = all_values[current_state]
+
+    next_physical_state = get_next_state(m, n, current_physical_state, action, adj_matrix)
+
+    h_neighbors = get_states_within_h_distance(m, n, next_physical_state, h)
+
+    full_physical_traj.append(current_physical_state)
+
+    previous_probabilities = {}
+    neighbor_true_labels = {}
+    for state in h_neighbors:
+        previous_probabilities[state] = belief[state]
+        neighbor_true_labels[state] = check_label_l(state)
+
+    previous_probabilities = {key: value.tolist() for key, value in previous_probabilities.items()}
+    trigger_function_value = update_trigger(h_neighbors, neighbor_true_labels, previous_probabilities)
+
+    for state in h_neighbors:
+        neighbor_label = check_label_l(state)
+        belief = update(belief, state, neighbor_label)
+
+    label = check_label_l(next_physical_state)
+
+    for i in dfa_transitions:
+        if i[0] == current_dfa_state and label == i[1][0]:
+            next_dfa_state = i[2]
+
+    next_state = (next_physical_state, next_dfa_state)
+
+    next_value = all_values[next_state]
+    # print("value", next_value)
+    belief = update(belief, next_physical_state, label)
+    observation_probabilities = belief
+    prob_history.append(grid_probabilities(belief, n, m))
+    if trigger_function_value > threshold:
+        counter += 1
+        print(f"\rReplanning #{counter}", end='', flush=True)
+
+        transition_dict = probabilistic_labeling_next(
+            transitions, observation_probabilities, dfa_transitions, adj_matrix
+        )
+        start_time_3 = time.time()
+        policy, all_values = Value_iteration(
+            m, n, initial_PA_values, transition_dict, transitions, product_nodes, gamma, adj_matrix, epsilon
+        )
+        end_time_3 = time.time()
+        p_t_i = end_time_3 - start_time_3
+        p_t_t += p_t_i
+        p_t_c += 1
+
+if counter > 0:
+    print()  # finish the in-place replanning line
+if p_t_c > 0:
+    print(f"Replanning count: {p_t_c}, average policy time: {p_t_t/p_t_c:.3f}s")
+else:
+    print("Replanning count: 0")
+
+full_physical_traj.append(next_physical_state)
+full_traj.append(next_state)
+
+print(f"Simulation time: {time.time() - start_time:.3f}s")
+print(f"Trajectory length: {len(full_physical_traj)}")
+print(full_physical_traj)
+
+anim = generate_grid_environment(n, m, full_physical_traj, prob_history, regions,
+                                 interval_ms=500, save_path='trajectory.gif')
+plt.show()
